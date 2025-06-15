@@ -1,1 +1,218 @@
-1
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Personal Info - ShevHeritage</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css">
+    <link rel="stylesheet" href="css/style.css" type="text/css">
+    <style>
+      body { background-color: #f5f8fd; font-family: Arial, sans-serif; }
+      .account-wrapper { display:flex; min-height:100vh; }
+      .sidebar { width:250px; background:#fff; padding:30px 20px; border-right:1px solid #ddd; }
+      .sidebar h5 { font-size:18px; font-weight:bold; margin-bottom:20px; }
+      .sidebar ul { list-style:none; padding-left:0; }
+      .sidebar ul li { margin-bottom:10px; }
+      .sidebar ul li a { text-decoration:none; color:#333; display:flex; align-items:center; padding:8px 12px; border-radius:6px; transition:background 0.3s; }
+      .sidebar ul li a.active, .sidebar ul li a:hover { background-color:#e6f0ff; color:#007bff; }
+      .sidebar ul li a img { width:20px; margin-right:10px; }
+      .content { flex:1; padding:40px; }
+      .account-title { font-size:26px; font-weight:bold; margin-bottom:30px; }
+      .form-group { margin-bottom:15px; }
+      hr { margin:40px 0; }
+    </style>
+</head>
+<body>
+<div class="account-wrapper">
+  <div class="sidebar">
+    <h5>Account</h5>
+    <ul>
+      <li><a href="account.html"><img src="img/icons/dashboard.svg" alt=""> Dashboard</a></li>
+      <li><a href="personal-info.html" class="active"><img src="img/icons/user.svg" alt=""> Personal Info</a></li>
+      <li><a href="#"><img src="img/icons/bonus.svg" alt=""> Bonus Balance</a></li>
+      <li><a href="#"><img src="img/icons/orders.svg" alt=""> Orders</a></li>
+      <li><a href="#"><img src="img/icons/notification.svg" alt=""> Notifications</a></li>
+      <li><a href="#"><img src="img/icons/history.svg" alt=""> All Purchases</a></li>
+      <li><a href="#"><img src="img/icons/receipt.svg" alt=""> Receipts</a></li>
+      <li><a href="#"><img src="img/icons/return.svg" alt=""> Returns</a></li>
+      <li><a href="#"><img src="img/icons/guarantee.svg" alt=""> Warranty Cards</a></li>
+      <li><a href="#"><img src="img/icons/service.svg" alt=""> Service Requests</a></li>
+      <li><a href="#"><img src="img/icons/cart.svg" alt=""> Cart</a></li>
+      <li><a href="#"><img src="img/icons/heart.svg" alt=""> Favorites</a></li>
+      <li><a href="#"><img src="img/icons/profile.svg" alt=""> Order Profiles</a></li>
+      <li><a href="#"><img src="img/icons/settings.svg" alt=""> Notification Settings</a></li>
+      <li><a href="#"><img src="img/icons/contact.svg" alt=""> Contacts</a></li>
+      <li><a href="#"><img src="img/icons/question.svg" alt=""> Feedback & Questions</a></li>
+      <li><a onclick="logout()" class="logout-btn" href="#"><img src="img/icons/logout.svg" alt=""> Logout</a></li>
+    </ul>
+  </div>
+  <div class="content">
+    <div class="account-title">Personal Information</div>
+
+    <form id="info-form">
+      <div class="form-group">
+        <label>First Name</label>
+        <input id="first-name" type="text" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input id="last-name" type="text" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="info-password" type="password" class="form-control" required>
+      </div>
+      <button type="submit" class="primary-btn">Save Info</button>
+    </form>
+
+    <hr>
+
+    <div id="email-section">
+      <h5>Change Email</h5>
+      <div id="email-step1" class="form-group">
+        <input type="email" id="new-email" class="form-control" placeholder="New email">
+        <button id="start-email" class="primary-btn mt-2">Send code to current email</button>
+      </div>
+      <div id="email-step2" class="form-group" style="display:none;">
+        <input type="text" id="code-old" class="form-control" placeholder="Code from current email">
+        <button id="verify-old" class="primary-btn mt-2">Verify</button>
+      </div>
+      <div id="email-step3" class="form-group" style="display:none;">
+        <input type="text" id="code-new" class="form-control" placeholder="Code from new email">
+        <button id="verify-new" class="primary-btn mt-2">Confirm new email</button>
+      </div>
+    </div>
+
+    <hr>
+
+    <div id="password-section">
+      <h5>Change Password</h5>
+      <div class="form-group">
+        <input type="password" id="new-password" class="form-control" placeholder="New password">
+        <button id="start-pass" class="primary-btn mt-2">Send confirmation code</button>
+      </div>
+      <div id="pass-step2" class="form-group" style="display:none;">
+        <input type="text" id="code-pass" class="form-control" placeholder="Confirmation code">
+        <button id="confirm-pass" class="primary-btn mt-2">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="footer-placeholder"></div>
+<script src="js/partials-loader.js"></script>
+<script src="js/header-auth.js"></script>
+<script>
+let userEmail = '';
+async function loadUser() {
+  const res = await fetch('/api/me', { credentials: 'include' });
+  if (!res.ok) return window.location.replace('login.html');
+  const user = await res.json();
+  userEmail = user.email;
+  document.getElementById('first-name').value = user.firstName || '';
+  document.getElementById('last-name').value = user.lastName || '';
+}
+
+document.getElementById('info-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = {
+    firstName: document.getElementById('first-name').value,
+    lastName: document.getElementById('last-name').value,
+    password: document.getElementById('info-password').value
+  };
+  const resp = await fetch('/api/me/update-info', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (resp.ok) alert('Info updated'); else alert(data.error || 'Failed');
+});
+
+document.getElementById('start-email').addEventListener('click', async () => {
+  const newEmail = document.getElementById('new-email').value;
+  const resp = await fetch('/api/me/email-change-request', {
+    method: 'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ newEmail })
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('Code sent to current email');
+    document.getElementById('email-step2').style.display = 'block';
+  } else alert(data.error || 'Error');
+});
+
+document.getElementById('verify-old').addEventListener('click', async () => {
+  const code = document.getElementById('code-old').value;
+  const resp = await fetch('/api/me/email-change-verify-old', {
+    method: 'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ code })
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('Code accepted. Check new email.');
+    document.getElementById('email-step3').style.display = 'block';
+  } else alert(data.error || 'Error');
+});
+
+document.getElementById('verify-new').addEventListener('click', async () => {
+  const code = document.getElementById('code-new').value;
+  const resp = await fetch('/api/me/email-change-verify-new', {
+    method: 'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ code })
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('Email updated');
+    userEmail = data.email;
+    document.getElementById('email-step2').style.display = 'none';
+    document.getElementById('email-step3').style.display = 'none';
+  } else alert(data.error || 'Error');
+});
+
+document.getElementById('start-pass').addEventListener('click', async () => {
+  const newPassword = document.getElementById('new-password').value;
+  const resp = await fetch('/api/me/password-change-request', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ newPassword })
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('Code sent to your email');
+    document.getElementById('pass-step2').style.display = 'block';
+  } else alert(data.error || 'Error');
+});
+
+document.getElementById('confirm-pass').addEventListener('click', async () => {
+  const code = document.getElementById('code-pass').value;
+  const resp = await fetch('/api/me/password-change-confirm', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ code })
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('Password changed');
+    document.getElementById('pass-step2').style.display = 'none';
+  } else alert(data.error || 'Error');
+});
+
+async function logout(){
+  await fetch('/api/logout', {credentials:'include'});
+  location.href='login.html';
+}
+
+loadUser();
+</script>
+</body>
+</html>

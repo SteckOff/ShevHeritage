@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Success - ShevHeritage</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css">
+  <link rel="stylesheet" href="css/style.css" type="text/css">
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <section class="checkout spad" style="text-align:center">
+    <h2>Thank you for your purchase!</h2>
+    <p id="order-info">Processing your order details...</p>
+  </section>
+
+  <div id="footer-placeholder"></div>
+  <script src="js/partials-loader.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (sessionId) {
+      fetch(`/api/checkout-session?sessionId=${sessionId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.id) {
+            document.getElementById('order-info').textContent = 'Payment confirmed. Session ID: ' + data.id;
+            localStorage.removeItem('cart');
+          } else {
+            document.getElementById('order-info').textContent = 'Unable to load order info.';
+          }
+        })
+        .catch(() => {
+          document.getElementById('order-info').textContent = 'Unable to load order info.';
+        });
+    } else {
+      document.getElementById('order-info').textContent = 'No session found.';
+    }
+  </script>
+</body>
+</html>

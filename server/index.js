@@ -99,7 +99,14 @@ function loadJSON(file, def) {
 function saveJSON(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
-function loadUsers() { return loadJSON(USERS_FILE, { pending: [], confirmed: [] }); }
+function loadUsers() {
+  return loadJSON(USERS_FILE, {
+    pending: [],
+    confirmed: [],
+    emailChanges: [],
+    passwordChanges: []
+  });
+}
 function saveUsers(data) { saveJSON(USERS_FILE, data); }
 function loadProducts() { return loadJSON(PRODUCTS_FILE, []); }
 function saveProducts(list) { saveJSON(PRODUCTS_FILE, list); }
@@ -248,6 +255,136 @@ app.post('/api/me/update', async (req, res) => {
   }
 
   saveUsers(users);
+  res.json({ ok: true });
+});
+
+// ----------------------------
+// Изменение личных данных (имя, фамилия) с проверкой пароля
+// ----------------------------
+app.post('/api/me/update-info', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { firstName, lastName, password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Missing password' });
+
+  const data = loadUsers();
+  const user = data.confirmed.find(u => u.email === req.session.user);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const match = await bcrypt.compare(password, user.hash);
+  if (!match) return res.status(401).json({ error: 'Invalid password' });
+
+  if (firstName) user.firstName = firstName;
+  if (lastName) user.lastName = lastName;
+
+  saveUsers(data);
+  res.json({ ok: true });
+});
+
+// ----------------------------
+// Запрос на изменение email
+// ----------------------------
+app.post('/api/me/email-change-request', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { newEmail } = req.body;
+  if (!newEmail) return res.status(400).json({ error: 'Missing new email' });
+
+  const data = loadUsers();
+  if (data.confirmed.some(u => u.email === newEmail))
+    return res.status(409).json({ error: 'Email already used' });
+
+  const code = Math.floor(100000 + Math.random()*900000).toString();
+  data.emailChanges.push({ email: req.session.user, newEmail, code, step: 'old' });
+  saveUsers(data);
+
+  transporter.sendMail({
+    from: transporter.options.auth.user,
+    to: req.session.user,
+    subject: 'Confirm email change',
+    text: `\u0412\u044b \u0441\u043e\u0431\u0438\u0440\u0430\u0435\u0442\u0435\u0441\u044c \u043f\u043e\u043c\u0435\u043d\u044f\u0442\u044c email?\n\nCode: ${code}\nIf it wasn't you, ignore this message.`
+  }).catch(err => console.error('Email error', err));
+
+  res.json({ ok: true });
+});
+
+// Проверка кода со старого email и отправка нового кода на новый email
+app.post('/api/me/email-change-verify-old', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { code } = req.body;
+  const data = loadUsers();
+  const reqIdx = data.emailChanges.findIndex(r => r.email === req.session.user && r.code === code && r.step === 'old');
+  if (reqIdx === -1) return res.status(400).json({ error: 'Invalid code' });
+
+  const request = data.emailChanges[reqIdx];
+  request.code = Math.floor(100000 + Math.random()*900000).toString();
+  request.step = 'new';
+  saveUsers(data);
+
+  transporter.sendMail({
+    from: transporter.options.auth.user,
+    to: request.newEmail,
+    subject: 'Verify new email',
+    text: `Enter this code to confirm your new email: ${request.code}`
+  }).catch(err => console.error('Email error', err));
+
+  res.json({ ok: true });
+});
+
+// Подтверждение нового email и обновление аккаунта
+app.post('/api/me/email-change-verify-new', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { code } = req.body;
+  const data = loadUsers();
+  const idx = data.emailChanges.findIndex(r => r.email === req.session.user && r.code === code && r.step === 'new');
+  if (idx === -1) return res.status(400).json({ error: 'Invalid code' });
+
+  const { newEmail } = data.emailChanges.splice(idx, 1)[0];
+  const user = data.confirmed.find(u => u.email === req.session.user);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  user.email = newEmail;
+  req.session.user = newEmail;
+
+  saveUsers(data);
+  res.json({ ok: true, email: newEmail });
+});
+
+// ----------------------------
+// Смена пароля с подтверждением по email
+// ----------------------------
+app.post('/api/me/password-change-request', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 5) return res.status(400).json({ error: 'Invalid password' });
+
+  const hash = await bcrypt.hash(newPassword, 10);
+  const code = Math.floor(100000 + Math.random()*900000).toString();
+
+  const data = loadUsers();
+  data.passwordChanges.push({ email: req.session.user, hash, code });
+  saveUsers(data);
+
+  transporter.sendMail({
+    from: transporter.options.auth.user,
+    to: req.session.user,
+    subject: 'Confirm password change',
+    text: `Enter this code to confirm your password change: ${code}`
+  }).catch(err => console.error('Email error', err));
+
+  res.json({ ok: true });
+});
+
+app.post('/api/me/password-change-confirm', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { code } = req.body;
+
+  const data = loadUsers();
+  const idx = data.passwordChanges.findIndex(r => r.email === req.session.user && r.code === code);
+  if (idx === -1) return res.status(400).json({ error: 'Invalid code' });
+
+  const { hash } = data.passwordChanges.splice(idx, 1)[0];
+  const user = data.confirmed.find(u => u.email === req.session.user);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  user.hash = hash;
+  saveUsers(data);
   res.json({ ok: true });
 });
 // Stripe Webhook endpoint

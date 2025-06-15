@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — ShevHeritage</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body {
+      background-color: #f4f7fa;
+    }
+    .admin-container {
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+    .form-group label {
+      font-weight: bold;
+    }
+    .drag-drop {
+      border: 2px dashed #ccc;
+      padding: 30px;
+      text-align: center;
+      color: #888;
+      border-radius: 10px;
+      transition: border-color 0.3s;
+    }
+    .drag-drop.drag-over {
+      border-color: #007bff;
+      color: #007bff;
+    }
+    .preview-img {
+      max-height: 100px;
+      margin: 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-container">
+  <h3 class="text-center mb-4">Admin Login</h3>
+
+  <!-- Login Form -->
+  <form id="loginForm">
+    <div class="form-group">
+      <input type="password" id="adminPass" placeholder="Enter Admin Password" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Login</button>
+  </form>
+
+  <!-- Panel -->
+  <div id="panel" style="display: none;">
+    <h4 class="mt-4">Product Management</h4>
+    <ul id="adminList" class="list-group mb-4"></ul>
+
+    <form id="editForm" enctype="multipart/form-data">
+      <input type="hidden" id="prodId">
+
+      <label>Product Name</label>
+      <input type="text" id="prodName" class="form-control" required>
+
+      <label>Category</label>
+      <select id="prodCategory" class="form-control" required>
+        <option value="">Select Category</option>
+        <option>POD SYSTEMS</option>
+        <option>ACCESSORIES</option>
+        <option>DISPOSABLE VAPES</option>
+        <option>E-LIQUIDS</option>
+        <option>BATTERIES</option>
+        <option>CHARGERS</option>
+        <option>COILS</option>
+        <option>TANKS</option>
+        <option>MODS</option>
+        <option>DRIP TIPS</option>
+        <option>SPARE PARTS</option>
+      </select>
+
+      <label>Price (CAD)</label>
+      <div class="input-group">
+        <div class="input-group-prepend">
+          <span class="input-group-text">$</span>
+        </div>
+        <input type="number" id="prodPrice" class="form-control" placeholder="0.00" step="0.01" min="0" required>
+      </div>
+
+      <label>Quantity</label>
+      <input type="number" id="prodQty" class="form-control" min="0" required>
+
+      <label>Discount (%)</label>
+      <input type="number" id="prodDiscount" class="form-control" min="0" max="100" />
+
+      <label>Short Description</label>
+      <input type="text" id="prodShortDesc" class="form-control" placeholder="Краткое описание">
+
+      <label>Full Description</label>
+      <textarea id="prodFullDesc" class="form-control" rows="4" placeholder="Полное описание"></textarea>
+
+      <label>Upload Images</label>
+  <div id="dropZone" class="drop-zone">Drag & Drop images here or click</div>
+  <input type="file" id="prodImages" multiple style="display: none;" accept="image/*">
+  <div id="previewContainer" class="mt-3 d-flex gap-2 flex-wrap"></div>
+
+  <button type="submit" class="btn btn-success mt-3">Save Product</button>
+</form>
+
+<script>
+  const dropZone = document.getElementById("dropZone");
+  const inputFile = document.getElementById("prodImages");
+  const previewContainer = document.getElementById("previewContainer");
+  let uploadedImageURLs = [];
+
+  dropZone.addEventListener("click", () => inputFile.click());
+  dropZone.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    handleUpload(e.dataTransfer.files);
+  });
+  inputFile.addEventListener("change", () => handleUpload(inputFile.files));
+
+  function handleUpload(files) {
+    const formData = new FormData();
+    [...files].forEach(file => formData.append('images', file));
+
+    fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      data.files.forEach(url => {
+        uploadedImageURLs.push(url);
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "preview-img";
+        previewContainer.appendChild(img);
+      });
+    })
+    .catch(err => alert('Upload failed'));
+  }
+
+  const editForm = document.getElementById('editForm');
+  editForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById('prodName').value,
+      category: document.getElementById('prodCategory').value,
+      price: +document.getElementById('prodPrice').value,
+      quantity: +document.getElementById('prodQty').value,
+      shortDesc: document.getElementById('prodShort').value,
+      fullDesc: document.getElementById('prodFull').value,
+      images: uploadedImageURLs
+    };
+    const id = document.getElementById('prodId').value;
+    const method = id ? 'PUT' : 'POST';
+    const url = '/api/products' + (id ? '/' + id : '');
+
+    const resp = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (resp.ok) {
+      alert('Product saved');
+      uploadedImageURLs = [];
+      previewContainer.innerHTML = '';
+      editForm.reset();
+    } else {
+      alert('Failed to save product');
+    }
+  });
+</script>
+
+</body>
+</html>

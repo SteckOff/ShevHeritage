@@ -88,6 +88,19 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
+// Получение информации о сессии оплаты
+app.get('/api/checkout-session', async (req, res) => {
+  const { sessionId } = req.query;
+  if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    res.json(session);
+  } catch (err) {
+    console.error('Stripe retrieve error:', err);
+    res.status(500).json({ error: 'Failed to retrieve session' });
+  }
+});
+
 // ----------------------------
 // Вспомогательные функции
 // ----------------------------

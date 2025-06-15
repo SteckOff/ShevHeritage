@@ -294,9 +294,11 @@ app.post('/api/me/email-change-request', (req, res) => {
     return res.status(409).json({ error: 'Email already used' });
 
   const code = Math.floor(100000 + Math.random()*900000).toString();
+
   const user = data.confirmed.find(u => u.email === req.session.user) || {};
   const firstName = user.firstName || '';
   const lastName = user.lastName || '';
+  
   data.emailChanges.push({ email: req.session.user, newEmail, code, step: 'old' });
   saveUsers(data);
 
@@ -316,6 +318,7 @@ app.post('/api/me/email-change-request', (req, res) => {
         — <strong>ShevHeritage Support Team</strong>
       </p>
     `
+
   }).catch(err => console.error('Email error', err));
 
   res.json({ ok: true });

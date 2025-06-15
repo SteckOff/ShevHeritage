@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Success - ShevHeritage</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css">
+  <link rel="stylesheet" href="css/style.css" type="text/css">
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container" style="min-height:60vh;">
+    <div class="row justify-content-center mt-5">
+      <div class="col-md-8 text-center">
+        <h2 id="status-message">Processing payment...</h2>
+        <p id="order-total"></p>
+        <a href="shop-grid.html" class="primary-btn mt-3">Continue shopping</a>
+      </div>
+    </div>
+  </div>
+  <div id="footer-placeholder"></div>
+  <script src="js/partials-loader.js"></script>
+  <script>
+    async function loadSession(){
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('session_id');
+      if(!id){
+        document.getElementById('status-message').textContent = 'Missing session ID';
+        return;
+      }
+      try {
+        const res = await fetch('/api/checkout-session/' + id);
+        const data = await res.json();
+        if(res.ok){
+          document.getElementById('status-message').textContent = 'Thank you for your purchase!';
+          if(data.amount_total){
+            document.getElementById('order-total').textContent = 'Total charged: $' + (data.amount_total/100).toFixed(2);
+          }
+        } else {
+          document.getElementById('status-message').textContent = data.error || 'Payment not found';
+        }
+      } catch (err){
+        console.error(err);
+        document.getElementById('status-message').textContent = 'Error fetching payment details';
+      }
+    }
+    loadSession();
+  </script>
+</body>
+</html>

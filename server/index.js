@@ -135,16 +135,17 @@ app.post('/api/register', async (req, res) => {
     await transporter.sendMail({
       from: transporter.options.auth.user,
       to: email,
-      subject: 'DavMadShop Email Verification',
-      text: `Dear ${firstName} ${lastName},\n\nYou are trying to register an account on DavMadShop.\n\nIf it was you, here is your verification code:\n\n${code}\n\nIf this wasn't you, simply ignore this message.\n\nSincerely,\nDavMadShop Team`,
+      subject: 'Verify Your Email to Complete Registration',
+      text: `Hello ${firstName} ${lastName},\n\nThank you for signing up at ShevHeritage!\n\nTo complete your registration and activate your account, please verify your email address using the code below:\n\nVerification Code: ${code}\n\nIf you did not create an account, you can disregard this email — no action will be taken.\n\nWith appreciation,\nShevHeritage Team`,
       html: `
-        <p style="font-family:sans-serif;font-size:15px;">
-          Dear <strong>${firstName} ${lastName}</strong>,<br><br>
-          You are trying to register an account on <b>DavMadShop</b>.<br><br>
-          If this was you, here is your 6-digit verification code:<br><br>
-          <div style="font-size:24px;font-weight:bold;color:#007bff;">${code}</div><br>
-          If this wasn't you, simply ignore this message.<br><br>
-          — DavMadShop Team
+        <p style="font-family:sans-serif; font-size:15px; line-height:1.6;">
+          Hello <strong>${firstName} ${lastName}</strong>,<br><br>
+          Thank you for signing up at <b>ShevHeritage</b>!<br><br>
+          To complete your registration, please verify your email address by entering the following code:<br><br>
+          <div style="font-size:24px; font-weight:bold; color:#28a745;">${code}</div><br>
+          If you didn’t initiate this registration, feel free to ignore this email — no changes will be made.<br><br>
+          Best wishes,<br>
+          — <strong>ShevHeritage Team</strong>
         </p>
       `
     });
@@ -293,14 +294,31 @@ app.post('/api/me/email-change-request', (req, res) => {
     return res.status(409).json({ error: 'Email already used' });
 
   const code = Math.floor(100000 + Math.random()*900000).toString();
+
+  const user = data.confirmed.find(u => u.email === req.session.user) || {};
+  const firstName = user.firstName || '';
+  const lastName = user.lastName || '';
+  
   data.emailChanges.push({ email: req.session.user, newEmail, code, step: 'old' });
   saveUsers(data);
 
   transporter.sendMail({
     from: transporter.options.auth.user,
     to: req.session.user,
-    subject: 'Confirm email change',
-    text: `\u0412\u044b \u0441\u043e\u0431\u0438\u0440\u0430\u0435\u0442\u0435\u0441\u044c \u043f\u043e\u043c\u0435\u043d\u044f\u0442\u044c email?\n\nCode: ${code}\nIf it wasn't you, ignore this message.`
+    subject: 'Request to Change Your Email Address',
+    text: `Dear ${firstName} ${lastName},\n\nWe received a request to change the email address associated with your ShevHeritage account.\n\nIf you made this request, please use the verification code below to confirm the change:\n\nVerification Code: ${code}\n\nIf you did not request this change, you can safely ignore this message. No further action is needed.\n\nBest regards,\nShevHeritage Support Team`,
+    html: `
+      <p style="font-family:sans-serif; font-size:15px; line-height:1.6;">
+        Dear <strong>${firstName} ${lastName}</strong>,<br><br>
+        We received a request to change the email address associated with your <b>ShevHeritage</b> account.<br><br>
+        If you made this request, please enter the following verification code to confirm the change:<br><br>
+        <div style="font-size:24px; font-weight:bold; color:#007bff;">${code}</div><br>
+        If this wasn’t you, no worries — you can simply ignore this message.<br><br>
+        Stay safe,<br>
+        — <strong>ShevHeritage Support Team</strong>
+      </p>
+    `
+
   }).catch(err => console.error('Email error', err));
 
   res.json({ ok: true });

@@ -34,7 +34,14 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const stripe = Stripe('sk_test_51RU5upQuiZH39Uf8U0nitPmO13DwxxA4MTm3FoTkRY8bfpNjUDKkp0CW1rkdHRzl2aDAxCR2cCW3qXejo0YrCgJQ00it5Y1cwF');
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ||
+  'sk_test_51RU5upQuiZH39Uf8U0nitPmO13DwxxA4MTm3FoTkRY8bfpNjUDKkp0CW1rkdHRzl2aDAxCR2cCW3qXejo0YrCgJQ00it5Y1cwF';
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY ||
+  'pk_test_51RU5upQuiZH39Uf8nXoLNWMGBrQ2r8zUkHoCErfQs5cawWRKkNzsthEi0CCvt43y1AlvevcuB7jOqj5HPAq6WvA800GPLrkddU';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_...';
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+const stripe = Stripe(STRIPE_SECRET_KEY);
 
 // ----------------------------
 // Middleware (очень важно — порядок!)
@@ -69,12 +76,13 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }));
 
   try {
+    const origin = BASE_URL;
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: 'http://localhost:3000/payment-success.html?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: 'http://localhost:3000/checkout.html?cancel=1',
+      success_url: `${origin}/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout.html?cancel=1`,
       metadata: {
         billingDetails: JSON.stringify(billingDetails),
         cart: JSON.stringify(cart)
@@ -99,6 +107,11 @@ app.get('/api/checkout-session', async (req, res) => {
     console.error('Stripe retrieve error:', err);
     res.status(500).json({ error: 'Failed to retrieve session' });
   }
+});
+
+// Отдаем публичный ключ Stripe на клиент
+app.get('/api/stripe-publishable-key', (req, res) => {
+  res.json({ publishableKey: STRIPE_PUBLISHABLE_KEY });
 });
 
 // ----------------------------
@@ -420,7 +433,7 @@ app.post('/api/me/password-change-confirm', (req, res) => {
 });
 // Stripe Webhook endpoint
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), (req, res) => {
-  const endpointSecret = 'whsec_...'; // Здесь вставь свой webhook secret из Stripe Dashboard!
+  const endpointSecret = STRIPE_WEBHOOK_SECRET;
   const sig = req.headers['stripe-signature'];
   let event;
 

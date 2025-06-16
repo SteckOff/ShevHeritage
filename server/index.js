@@ -39,6 +39,7 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ||
 const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY ||
   'pk_test_51RU5upQuiZH39Uf8nXoLNWMGBrQ2r8zUkHoCErfQs5cawWRKkNzsthEi0CCvt43y1AlvevcuB7jOqj5HPAq6WvA800GPLrkddU';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_...';
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 const stripe = Stripe(STRIPE_SECRET_KEY);
 
@@ -75,12 +76,13 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }));
 
   try {
+    const origin = BASE_URL;
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: 'http://localhost:3000/payment-success.html?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: 'http://localhost:3000/checkout.html?cancel=1',
+      success_url: `${origin}/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout.html?cancel=1`,
       metadata: {
         billingDetails: JSON.stringify(billingDetails),
         cart: JSON.stringify(cart)

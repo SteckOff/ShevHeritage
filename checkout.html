@@ -764,19 +764,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Отправляем на backend для создания Stripe-сессии
-            const response = await fetch('/api/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cart, billingDetails })
-            });
+            try {
+                const response = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cart, billingDetails })
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            // Если всё ок — редиректим на Stripe
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                alert(data.error || 'Failed');
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert(data.error || 'Failed');
+                }
+            } catch (err) {
+                console.error('Checkout request failed', err);
+                alert('Failed to initiate payment. Please try again later.');
             }
         });
     }

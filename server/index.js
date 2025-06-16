@@ -75,12 +75,13 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }));
 
   try {
+     const origin = BASE_URL;
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: 'http://localhost:3000/payment-success.html?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: 'http://localhost:3000/checkout.html?cancel=1',
+      success_url: `${origin}/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout.html?cancel=1`,
       metadata: {
         billingDetails: JSON.stringify(billingDetails),
         cart: JSON.stringify(cart)
@@ -105,6 +106,11 @@ app.get('/api/checkout-session', async (req, res) => {
     console.error('Stripe retrieve error:', err);
     res.status(500).json({ error: 'Failed to retrieve session' });
   }
+});
+
+// Отдаем публичный ключ Stripe на клиент
+app.get('/api/stripe-publishable-key', (req, res) => {
+  res.json({ publishableKey: STRIPE_PUBLISHABLE_KEY });
 });
 
 // Отдаем публичный ключ Stripe на клиент

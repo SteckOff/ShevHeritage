@@ -34,7 +34,13 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const stripe = Stripe('REDACTED_STRIPE_SECRET');
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ||
+  'REDACTED_STRIPE_SECRET';
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY ||
+  'REDACTED_STRIPE_PUBLISHABLE';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_...';
+
+const stripe = Stripe(STRIPE_SECRET_KEY);
 
 // ----------------------------
 // Middleware (очень важно — порядок!)
@@ -99,6 +105,11 @@ app.get('/api/checkout-session', async (req, res) => {
     console.error('Stripe retrieve error:', err);
     res.status(500).json({ error: 'Failed to retrieve session' });
   }
+});
+
+// Отдаем публичный ключ Stripe на клиент
+app.get('/api/stripe-publishable-key', (req, res) => {
+  res.json({ publishableKey: STRIPE_PUBLISHABLE_KEY });
 });
 
 // ----------------------------
@@ -420,7 +431,7 @@ app.post('/api/me/password-change-confirm', (req, res) => {
 });
 // Stripe Webhook endpoint
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), (req, res) => {
-  const endpointSecret = 'whsec_...'; // Здесь вставь свой webhook secret из Stripe Dashboard!
+  const endpointSecret = STRIPE_WEBHOOK_SECRET;
   const sig = req.headers['stripe-signature'];
   let event;
 

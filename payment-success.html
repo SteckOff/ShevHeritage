@@ -24,7 +24,7 @@
 
     async function saveOrder(data) {
       try {
-        await fetch('/order', {
+        const res = await fetch('/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -36,8 +36,10 @@
             paid_at: new Date().toISOString()
           })
         });
+        if (!res.ok) throw new Error('Failed');
       } catch (err) {
         console.error('Failed to save order', err);
+        infoEl.textContent = 'Order saved failed. Please contact support.';
       }
     }
 

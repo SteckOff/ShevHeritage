@@ -40,7 +40,7 @@ const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY ||
   'pk_test_51RU5upQuiZH39Uf8nXoLNWMGBrQ2r8zUkHoCErfQs5cawWRKkNzsthEi0CCvt43y1AlvevcuB7jOqj5HPAq6WvA800GPLrkddU';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_...';
 
-const stripe = Stripe(STRIPE_SECRET_KEY);
+const stripe = new Stripe(STRIPE_SECRET_KEY);
 
 // ----------------------------
 // Middleware (очень важно — порядок!)
@@ -106,11 +106,6 @@ app.get('/api/checkout-session', async (req, res) => {
     console.error('Stripe retrieve error:', err);
     res.status(500).json({ error: 'Failed to retrieve session' });
   }
-});
-
-// Отдаем публичный ключ Stripe на клиент
-app.get('/api/stripe-publishable-key', (req, res) => {
-  res.json({ publishableKey: STRIPE_PUBLISHABLE_KEY });
 });
 
 // Отдаем публичный ключ Stripe на клиент

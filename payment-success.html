@@ -20,22 +20,44 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
+    const infoEl = document.getElementById('order-info');
+
+    async function saveOrder(data) {
+      try {
+        await fetch('/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: data.id,
+            email: data.customer_details?.email,
+            billingDetails: data.metadata ? JSON.parse(data.metadata.billingDetails) : {},
+            cart: data.metadata ? JSON.parse(data.metadata.cart) : [],
+            status: 'confirmed',
+            paid_at: new Date().toISOString()
+          })
+        });
+      } catch (err) {
+        console.error('Failed to save order', err);
+      }
+    }
+
     if (sessionId) {
       fetch(`/api/checkout-session?sessionId=${sessionId}`)
         .then(r => r.json())
-        .then(data => {
+        .then(async data => {
           if (data.id) {
-            document.getElementById('order-info').textContent = 'Payment confirmed. Session ID: ' + data.id;
+            infoEl.textContent = 'Payment confirmed. Session ID: ' + data.id;
+            await saveOrder(data);
             localStorage.removeItem('cart');
           } else {
-            document.getElementById('order-info').textContent = 'Unable to load order info.';
+            infoEl.textContent = 'Unable to load order info.';
           }
         })
         .catch(() => {
-          document.getElementById('order-info').textContent = 'Unable to load order info.';
+          infoEl.textContent = 'Unable to load order info.';
         });
     } else {
-      document.getElementById('order-info').textContent = 'No session found.';
+      infoEl.textContent = 'No session found.';
     }
   </script>
 </body>

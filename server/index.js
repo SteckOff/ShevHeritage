@@ -34,10 +34,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ||
-  'REDACTED_STRIPE_SECRET';
-const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY ||
-  'REDACTED_STRIPE_PUBLISHABLE';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_...';
 
 const stripe = Stripe(STRIPE_SECRET_KEY);
